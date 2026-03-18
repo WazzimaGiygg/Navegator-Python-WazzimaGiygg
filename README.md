@@ -1,3 +1,5 @@
+https://wazzimagiygg.com/paginas/actions/?id=nm37HUWR8xs2WTamTUGM
+
 Technical Documentation: Navegador WazzimaGiygg (v2.1)
 
 1. Project Overview and Strategic Architecture

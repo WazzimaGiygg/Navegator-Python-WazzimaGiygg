@@ -61,7 +61,7 @@ class AuthDialog(QDialog):
         return self.username_edit.text(), self.password_edit.text()
 
 class MenuContextualWebEnginePage(QWebEnginePage):
-    """Página web personalizada com menu de contexto e suporte a autenticação"""
+    """Página web personalizada com suporte a autenticação"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -98,228 +98,6 @@ class MenuContextualWebEnginePage(QWebEnginePage):
                 main_window.adicionar_nova_aba(QUrl(), nova_pagina)
                 return nova_pagina
         return None
-    
-    def createStandardContextMenu(self):
-        """Criar menu de contexto personalizado"""
-        menu = super().createStandardContextMenu()
-        
-        # Adicionar separador
-        menu.addSeparator()
-        
-        # Ação para ver código fonte
-        ver_codigo_action = QAction("Exibir Código Fonte", menu)
-        ver_codigo_action.triggered.connect(self.exibir_codigo_fonte)
-        menu.addAction(ver_codigo_action)
-        
-        return menu
-    
-    def exibir_codigo_fonte(self):
-        """Exibir código fonte da página em uma nova aba"""
-        # Callback para receber o HTML
-        def callback_html(html):
-            if html and self.parent_window and hasattr(self.parent_window, 'parent'):
-                main_window = self.parent_window.parent
-                if main_window:
-                    # Escapar o HTML para evitar problemas com caracteres especiais
-                    html_escapado = html.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${')
-                    
-                    # Criar HTML formatado para exibição do código fonte
-                    html_formatado = f'''<!DOCTYPE html>
-<html>
-<head>
-    <title>Código Fonte: {self.url().toString()}</title>
-    <style>
-        body {{
-            margin: 0;
-            padding: 20px;
-            background: #1e1e1e;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-        }}
-        #toolbar {{
-            background: #2d2d2d;
-            padding: 10px 20px;
-            position: sticky;
-            top: 0;
-            border-bottom: 1px solid #444;
-            margin-bottom: 20px;
-            color: #fff;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 5px;
-        }}
-        #url-info {{
-            color: #0099ff;
-            font-size: 12px;
-        }}
-        #source-code {{
-            background: #2d2d2d;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #d4d4d4;
-            border: 1px solid #444;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }}
-        .tag {{
-            color: #569cd6;
-        }}
-        .attr {{
-            color: #9cdcfe;
-        }}
-        .value {{
-            color: #ce9178;
-        }}
-        .comment {{
-            color: #6a9955;
-        }}
-        .line-number {{
-            display: inline-block;
-            width: 40px;
-            color: #858585;
-            text-align: right;
-            padding-right: 15px;
-            user-select: none;
-            border-right: 1px solid #404040;
-            margin-right: 15px;
-        }}
-        .line {{
-            display: flex;
-        }}
-        .line-content {{
-            flex: 1;
-        }}
-        .line:hover {{
-            background: #3a3a3a;
-        }}
-        .stats {{
-            color: #888;
-            font-size: 12px;
-        }}
-        .btn {{
-            background: #0e639c;
-            color: white;
-            border: none;
-            padding: 5px 15px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-        }}
-        .btn:hover {{
-            background: #1177bb;
-        }}
-        .btn-copy {{
-            background: #2d2d2d;
-            border: 1px solid #555;
-        }}
-        .btn-copy:hover {{
-            background: #3d3d3d;
-        }}
-    </style>
-    <script>
-        function copyToClipboard() {{
-            const code = document.getElementById('source-code').innerText;
-            navigator.clipboard.writeText(code).then(function() {{
-                const btn = document.getElementById('copyBtn');
-                btn.textContent = 'Copiado!';
-                setTimeout(() => btn.textContent = 'Copiar', 2000);
-            }});
-        }}
-        
-        function wordWrap() {{
-            document.getElementById('source-code').style.whiteSpace = 
-                document.getElementById('source-code').style.whiteSpace === 'pre-wrap' ? 'pre' : 'pre-wrap';
-        }}
-        
-        function toggleLineNumbers() {{
-            const lines = document.querySelectorAll('.line');
-            lines.forEach(line => {{
-                const lineNum = line.querySelector('.line-number');
-                if (lineNum) {{
-                    lineNum.style.display = lineNum.style.display === 'none' ? 'inline-block' : 'none';
-                }}
-            }});
-        }}
-    </script>
-</head>
-<body>
-    <div id="toolbar">
-        <div>
-            <strong>📄 CÓDIGO FONTE</strong>
-            <span id="url-info"> | {self.url().toString()}</span>
-        </div>
-        <div>
-            <span class="stats" id="stats"></span>
-            <button class="btn" onclick="wordWrap()">Quebra de Linha</button>
-            <button class="btn" onclick="toggleLineNumbers()">Linhas</button>
-            <button class="btn btn-copy" id="copyBtn" onclick="copyToClipboard()">Copiar</button>
-        </div>
-    </div>
-    <div id="source-code"></div>
-    <script>
-        // Função para escapar HTML
-        function escapeHtml(unsafe) {{
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }}
-        
-        // Função para syntax highlight simples
-        function highlightHtml(code) {{
-            // Escapar primeiro
-            let escaped = escapeHtml(code);
-            
-            // Highlight tags
-            escaped = escaped.replace(/&lt;(\\/?)(\\w+)(.*?)&gt;/g, function(match, slash, tag, attrs) {{
-                let result = '&lt;<span class="tag">' + slash + tag + '</span>';
-                if (attrs) {{
-                    // Highlight attributes
-                    result += attrs.replace(/(\\w+)(=)(&quot;.*?&quot;)/g, 
-                        '<span class="attr">$1</span>$2<span class="value">$3</span>');
-                }}
-                result += '&gt;';
-                return result;
-            }});
-            
-            // Highlight comments
-            escaped = escaped.replace(/&lt;!--(.*?)--&gt;/g, 
-                '&lt;!--<span class="comment">$1</span>--&gt;');
-            
-            return escaped;
-        }}
-        
-        // Processar o código
-        const rawCode = `{html_escapado}`;
-        const lines = rawCode.split('\\n');
-        let html = '';
-        
-        lines.forEach((line, index) => {{
-            const lineNumber = index + 1;
-            const highlightedLine = highlightHtml(line);
-            html += '<div class="line">' +
-                    '<span class="line-number">' + lineNumber + '</span>' +
-                    '<span class="line-content">' + (highlightedLine || '&nbsp;') + '</span>' +
-                    '</div>';
-        }});
-        
-        document.getElementById('source-code').innerHTML = html;
-        document.getElementById('stats').textContent = 'Linhas: ' + lines.length + ' | Tamanho: ' + rawCode.length + ' chars';
-    </script>
-</body>
-</html>'''
-                    
-                    # Abrir em nova aba
-                    main_window.adicionar_nova_aba_com_html(html_formatado, f"Código Fonte: {self.url().host()}")
-        
-        # Obter HTML da página
-        self.toHtml(callback_html)
 
 class NavegadorAbas(QMainWindow):
     def __init__(self):
@@ -485,10 +263,6 @@ class NavegadorAbas(QMainWindow):
         atalho_focar_url = QShortcut(QKeySequence("Ctrl+L"), self)
         atalho_focar_url.activated.connect(self.focar_barra_endereco)
         
-        # Ctrl+U - Ver código fonte
-        atalho_codigo_fonte = QShortcut(QKeySequence("Ctrl+U"), self)
-        atalho_codigo_fonte.activated.connect(self.exibir_codigo_fonte_aba_atual)
-        
         # Ctrl+G - Abrir GitHub
         atalho_github = QShortcut(QKeySequence("Ctrl+G"), self)
         atalho_github.activated.connect(self.abrir_github)
@@ -534,14 +308,6 @@ class NavegadorAbas(QMainWindow):
         aba_ant.setShortcut("Ctrl+Shift+Tab")
         aba_ant.triggered.connect(self.aba_anterior)
         menu_abas.addAction(aba_ant)
-        
-        # Menu Exibir
-        menu_exibir = menubar.addMenu("Exibir")
-        
-        codigo_fonte = QAction("Código Fonte", self)
-        codigo_fonte.setShortcut("Ctrl+U")
-        codigo_fonte.triggered.connect(self.exibir_codigo_fonte_aba_atual)
-        menu_exibir.addAction(codigo_fonte)
         
         # Menu Projeto
         menu_projeto = menubar.addMenu("Projeto")
@@ -611,27 +377,6 @@ class NavegadorAbas(QMainWindow):
         
         return novo_navegador
     
-    def adicionar_nova_aba_com_html(self, conteudo_html, titulo="Código Fonte"):
-        """Adicionar nova aba com conteúdo HTML personalizado"""
-        # Criar página temporária
-        pagina_temp = QWebEnginePage(self)
-        
-        # Criar navegador
-        novo_navegador = QWebEngineView()
-        novo_navegador.setPage(pagina_temp)
-        
-        # Carregar HTML
-        novo_navegador.setHtml(conteudo_html)
-        
-        # Conectar sinais básicos
-        novo_navegador.titleChanged.connect(self.atualizar_titulo_aba)
-        
-        # Adicionar ao tab widget
-        index = self.aba_widget.addTab(novo_navegador, titulo)
-        self.aba_widget.setCurrentIndex(index)
-        
-        return novo_navegador
-    
     def fechar_aba(self, index):
         """Fechar aba pelo índice"""
         if self.aba_widget.count() > 1:
@@ -663,14 +408,6 @@ class NavegadorAbas(QMainWindow):
         """Focar na barra de endereço"""
         self.barra_endereco.setFocus()
         self.barra_endereco.selectAll()
-    
-    def exibir_codigo_fonte_aba_atual(self):
-        """Exibir código fonte da aba atual"""
-        navegador = self.obter_aba_atual()
-        if navegador and navegador.page():
-            # Acessar o método da página
-            if hasattr(navegador.page(), 'exibir_codigo_fonte'):
-                navegador.page().exibir_codigo_fonte()
     
     def atualizar_titulo_aba(self, titulo):
         """Atualizar título da aba quando a página carregar"""
@@ -859,12 +596,9 @@ class NavegadorAbas(QMainWindow):
         """Mostrar diálogo sobre"""
         QMessageBox.about(self, "Sobre o Navegador",
                          "Navegador Python com PyQt5\n"
-                         "Versão 2.1 - Multi-abas + Código Fonte\n\n"
+                         "Versão 2.0 - Multi-abas\n\n"
                          "Funcionalidades:\n"
                          "• Navegação por abas (Ctrl+T nova aba)\n"
-                         "• Visualizar código fonte (Ctrl+U ou botão direito)\n"
-                         "• Código fonte com syntax highlighting\n"
-                         "• Copiar código fonte\n"
                          "• Suporte a autenticação (auth-popup)\n"
                          f"• Página inicial: {self.url_home}\n"
                          f"• GitHub: {self.github_url}\n\n"
@@ -875,7 +609,7 @@ def criar_arquivo_exemplo():
     html_exemplo = """<!DOCTYPE html>
 <html>
 <head>
-    <title>Navegador Multi-abas com Código Fonte</title>
+    <title>Navegador Multi-abas</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -932,19 +666,11 @@ def criar_arquivo_exemplo():
         .btn:hover {
             background: #FF6D00;
         }
-        .code-demo {
-            background: #1e1e1e;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: left;
-            font-family: monospace;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🌐 Navegador com Visualização de Código Fonte</h1>
+        <h1>🌐 Navegador Multi-abas</h1>
         
         <div class="feature-box">
             <div class="feature">
@@ -953,27 +679,14 @@ def criar_arquivo_exemplo():
                 <p><span class="shortcut">Ctrl+T</span> Nova aba</p>
             </div>
             <div class="feature">
-                <h3>🔍 Código Fonte</h3>
-                <p>Veja o código HTML de qualquer página</p>
-                <p><span class="shortcut">Ctrl+U</span> ou botão direito</p>
+                <h3>🔐 Autenticação</h3>
+                <p>Suporte a popups de login</p>
             </div>
             <div class="feature">
-                <h3>📋 Copiar Código</h3>
-                <p>Copie o código fonte com formatação</p>
-                <p>Botão "Copiar" na visualização</p>
+                <h3>⭐ Favoritos</h3>
+                <p>Salve suas páginas favoritas</p>
+                <p><span class="shortcut">Ctrl+D</span></p>
             </div>
-        </div>
-        
-        <div style="text-align: center; margin: 30px 0;">
-            <p><strong>Teste agora:</strong> Clique com botão direito nesta página e selecione "Exibir Código Fonte"</p>
-            <button class="btn" onclick="alert('O código fonte será aberto em nova aba!')">Testar Código Fonte</button>
-        </div>
-        
-        <div class="code-demo">
-            <p style="color: #569cd6;">&lt;!-- Exemplo de código formatado --&gt;</p>
-            <p style="color: #d4d4d4;"><span style="color: #569cd6;">&lt;div</span> <span style="color: #9cdcfe;">class=</span><span style="color: #ce9178;">"container"</span><span style="color: #569cd6;">&gt;</span></p>
-            <p style="color: #d4d4d4; margin-left: 20px;"><span style="color: #569cd6;">&lt;h1&gt;</span>Olá Mundo!<span style="color: #569cd6;">&lt;/h1&gt;</span></p>
-            <p style="color: #569cd6;">&lt;/div&gt;</p>
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
@@ -1000,23 +713,19 @@ if __name__ == "__main__":
     arquivo_exemplo = criar_arquivo_exemplo()
     
     print("=" * 70)
-    print("✅ NAVEGADOR MULTI-ABAS COM CÓDIGO FONTE!")
+    print("✅ NAVEGADOR MULTI-ABAS")
     print("=" * 70)
     print(f"📄 Página exemplo: {arquivo_exemplo}")
     print(f"🏠 Página inicial: https://wazzimagiygg.wikidot.com")
     print(f"🐙 GitHub: https://github.com/WazzimaGiygg/Navegator-Python-WazzimaGiygg")
     print("🔐 Suporte a autenticação: ATIVADO")
-    print("🔍 Visualização de código fonte: ATIVADO")
     print("\n📝 ATALHOS:")
     print("   Ctrl+T    - Nova aba")
     print("   Ctrl+W    - Fechar aba")
-    print("   Ctrl+U    - Ver código fonte")
     print("   Ctrl+G    - Abrir GitHub Project")
     print("   Ctrl+L    - Focar URL")
     print("   F5        - Recarregar")
     print("   Ctrl+D    - Adicionar favorito")
-    print("\n🖱️  BOTÃO DIREITO:")
-    print("   'Exibir Código Fonte' no menu de contexto")
     print("=" * 70)
     
     # Criar e mostrar o navegador

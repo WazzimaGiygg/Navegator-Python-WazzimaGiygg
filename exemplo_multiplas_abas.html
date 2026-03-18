@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Navegador Multi-abas com Código Fonte</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .feature-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .feature h3 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+        .shortcut {
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .btn {
+            background: #FF9100;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #FF6D00;
+        }
+        .code-demo {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Navegador com Visualização de Código Fonte</h1>
+        
+        <div class="feature-box">
+            <div class="feature">
+                <h3>📑 Múltiplas Abas</h3>
+                <p>Navegue com várias abas</p>
+                <p><span class="shortcut">Ctrl+T</span> Nova aba</p>
+            </div>
+            <div class="feature">
+                <h3>🔍 Código Fonte</h3>
+                <p>Veja o código HTML de qualquer página</p>
+                <p><span class="shortcut">Ctrl+U</span> ou botão direito</p>
+            </div>
+            <div class="feature">
+                <h3>📋 Copiar Código</h3>
+                <p>Copie o código fonte com formatação</p>
+                <p>Botão "Copiar" na visualização</p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <p><strong>Teste agora:</strong> Clique com botão direito nesta página e selecione "Exibir Código Fonte"</p>
+            <button class="btn" onclick="alert('O código fonte será aberto em nova aba!')">Testar Código Fonte</button>
+        </div>
+        
+        <div class="code-demo">
+            <p style="color: #569cd6;">&lt;!-- Exemplo de código formatado --&gt;</p>
+            <p style="color: #d4d4d4;"><span style="color: #569cd6;">&lt;div</span> <span style="color: #9cdcfe;">class=</span><span style="color: #ce9178;">"container"</span><span style="color: #569cd6;">&gt;</span></p>
+            <p style="color: #d4d4d4; margin-left: 20px;"><span style="color: #569cd6;">&lt;h1&gt;</span>Olá Mundo!<span style="color: #569cd6;">&lt;/h1&gt;</span></p>
+            <p style="color: #569cd6;">&lt;/div&gt;</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <p><strong>Links de teste:</strong></p>
+            <a href="https://wazzimagiygg.com" class="btn">🏠 wazzimagiygg.com</a>
+            <a href="https://www.google.com" class="btn">Google</a>
+            <a href="https://httpbin.org/basic-auth/user/passwd" class="btn">Testar Auth (user/passwd)</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -15,7 +15,6 @@ class NetworkProxyFactory(QNetworkProxyFactory):
         super().__init__()
     
     def queryProxy(self, query):
-        # Retorna proxy padrão do sistema
         return [QNetworkProxy(QNetworkProxy.DefaultProxy)]
 
 class AuthDialog(QDialog):
@@ -29,14 +28,12 @@ class AuthDialog(QDialog):
         
         layout = QVBoxLayout()
         
-        # Informações do site
         info_label = QLabel(f"O site <b>{url.host()}</b> requer autenticação:")
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
         
         layout.addSpacing(10)
         
-        # Campos de usuário e senha
         form_layout = QFormLayout()
         
         self.username_edit = QLineEdit()
@@ -52,7 +49,6 @@ class AuthDialog(QDialog):
         
         layout.addSpacing(20)
         
-        # Botões
         botoes_layout = QHBoxLayout()
         
         btn_login = QPushButton("Login")
@@ -78,33 +74,17 @@ class CustomWebEnginePage(QWebEnginePage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent_window = parent
-        
-        # Conectar sinal de criação de nova janela
         self.createWindow = self.handle_create_window
-        
-        # Configurar para aceitar todos os certificados (para debug)
-        self.featurePermissionRequested.connect(self.on_feature_requested)
     
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
         """Capturar mensagens do console JavaScript"""
         if "ChunkLoadError" in message or "SyntaxError" in message:
-            print(f"🔴 ERRO JS: {message} (linha {lineNumber})")
+            erro_msg = f"JS Error: {message} (linha {lineNumber})"
+            print(f"🔴 {erro_msg}")
             
-            # Tentar recarregar automaticamente em caso de erro de chunk
-            if "ChunkLoadError" in message and self.parent_window:
-                QTimer.singleShot(1000, self.tentar_recarregar)
-    
-    def tentar_recarregar(self):
-        """Tenta recarregar a página em caso de erro de chunk"""
-        if self.parent_window:
-            navegador = self.parent_window.obter_aba_atual()
-            if navegador and navegador.page() == self:
-                print("🔄 Tentando recarregar página após erro de chunk...")
-                navegador.reload()
-    
-    def on_feature_requested(self, url, feature):
-        """Permitir recursos solicitados pela página"""
-        self.setFeaturePermission(url, feature, QWebEnginePage.PermissionGrantedByUser)
+            # Mostrar no console se disponível
+            if self.parent_window and hasattr(self.parent_window, 'log_diagnostico'):
+                self.parent_window.log_diagnostico(erro_msg, "ERRO")
     
     def authenticationRequired(self, request_url, auth_challenge):
         """Handler para requisições de autenticação"""
@@ -118,19 +98,17 @@ class CustomWebEnginePage(QWebEnginePage):
         return False
     
     def certificateError(self, error):
-        """Lidar com erros de certificado SSL - mais tolerante"""
-        print(f"⚠️ Erro de certificado (ignorado): {error.description()}")
-        return True  # Ignorar erros de certificado para teste
+        """Lidar com erros de certificado SSL"""
+        print(f"⚠️ Erro de certificado: {error.description()}")
+        return True
     
     def handle_create_window(self, window_type):
         """Handle para criação de novas janelas"""
-        if self.parent_window and hasattr(self.parent_window, 'parent'):
-            main_window = self.parent_window.parent
-            if main_window and hasattr(main_window, 'adicionar_nova_aba'):
-                nova_pagina = CustomWebEnginePage(main_window)
-                nova_pagina.parent_window = main_window
-                main_window.adicionar_nova_aba(QUrl(), nova_pagina)
-                return nova_pagina
+        if self.parent_window and hasattr(self.parent_window, 'adicionar_nova_aba'):
+            nova_pagina = CustomWebEnginePage(self.parent_window)
+            nova_pagina.parent_window = self.parent_window
+            self.parent_window.adicionar_nova_aba(QUrl(), nova_pagina)
+            return nova_pagina
         return None
 
 class NavegadorAbas(QMainWindow):
@@ -141,36 +119,37 @@ class NavegadorAbas(QMainWindow):
         self.setWindowTitle("Navegador WazzimaGiygg - Modo Diagnóstico")
         self.setGeometry(100, 100, 1200, 800)
         
-        # URL da página inicial
+        # URLs
         self.url_home = "https://wazzimagiygg.wikidot.com"
-        
-        # URL do GitHub
         self.github_url = "https://github.com/WazzimaGiygg/Navegator-Python-WazzimaGiygg"
         
         # Lista de favoritos
         self.favoritos = [self.url_home]
         
-        # Configurar proxy para usar o padrão do sistema
+        # Configurar proxy
         QNetworkProxyFactory.setApplicationProxyFactory(NetworkProxyFactory())
         
-        # Widget central e layout
+        # CRIAR CONSOLE PRIMEIRO (antes da barra de ferramentas)
+        self.criar_console_diagnostico()
+        
+        # Widget central
         widget_central = QWidget()
         self.setCentralWidget(widget_central)
         layout_principal = QVBoxLayout(widget_central)
         layout_principal.setContentsMargins(0, 0, 0, 0)
         layout_principal.setSpacing(0)
         
-        # BARRA DE FERRAMENTAS
+        # Barra de ferramentas (agora o console_dock já existe)
         self.criar_barra_ferramentas()
         
-        # BARRA DE ABAS
+        # Barra de abas
         self.aba_widget = QTabWidget()
         self.aba_widget.setTabsClosable(True)
         self.aba_widget.tabCloseRequested.connect(self.fechar_aba)
         self.aba_widget.currentChanged.connect(self.aba_mudou)
         layout_principal.addWidget(self.aba_widget)
         
-        # BARRA DE STATUS
+        # Barra de status
         self.status_bar = self.statusBar()
         self.status_bar.showMessage("Pronto - Modo Diagnóstico Ativo")
         
@@ -178,9 +157,6 @@ class NavegadorAbas(QMainWindow):
         self.progress_bar.setMaximumWidth(100)
         self.progress_bar.setVisible(False)
         self.status_bar.addPermanentWidget(self.progress_bar)
-        
-        # Criar console de diagnóstico
-        self.console_dock = self.criar_console_diagnostico()
         
         # Atalhos de teclado
         self.criar_atalhos()
@@ -196,8 +172,8 @@ class NavegadorAbas(QMainWindow):
     
     def criar_console_diagnostico(self):
         """Criar um dock widget para mostrar mensagens de diagnóstico"""
-        dock = QDockWidget("Console de Diagnóstico", self)
-        dock.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.console_dock = QDockWidget("Console de Diagnóstico", self)
+        self.console_dock.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
         
         self.console_text = QTextEdit()
         self.console_text.setReadOnly(True)
@@ -211,13 +187,11 @@ class NavegadorAbas(QMainWindow):
             }
         """)
         
-        dock.setWidget(self.console_text)
-        self.addDockWidget(Qt.BottomDockWidgetArea, dock)
+        self.console_dock.setWidget(self.console_text)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.console_dock)
         
         # Inicialmente escondido
-        dock.hide()
-        
-        return dock
+        self.console_dock.hide()
     
     def log_diagnostico(self, mensagem, tipo="INFO"):
         """Adicionar mensagem ao console de diagnóstico"""
@@ -239,31 +213,30 @@ class NavegadorAbas(QMainWindow):
     
     def criar_barra_ferramentas(self):
         """Criar barra de ferramentas com opções de diagnóstico"""
-        barra = QToolBar()
+        barra = self.addToolBar("Ferramentas")
         barra.setMovable(False)
         barra.setIconSize(QSize(20, 20))
-        self.addToolBar(barra)
         
         # Botões de navegação
-        btn_voltar = QPushButton("←")
+        btn_voltar = QAction("←", self)
         btn_voltar.setToolTip("Voltar")
-        btn_voltar.clicked.connect(self.voltar_aba_atual)
-        barra.addWidget(btn_voltar)
+        btn_voltar.triggered.connect(self.voltar_aba_atual)
+        barra.addAction(btn_voltar)
         
-        btn_avancar = QPushButton("→")
+        btn_avancar = QAction("→", self)
         btn_avancar.setToolTip("Avançar")
-        btn_avancar.clicked.connect(self.avancar_aba_atual)
-        barra.addWidget(btn_avancar)
+        btn_avancar.triggered.connect(self.avancar_aba_atual)
+        barra.addAction(btn_avancar)
         
-        btn_recarregar = QPushButton("↻")
-        btn_recarregar.setToolTip("Recarregar")
-        btn_recarregar.clicked.connect(self.recarregar_aba_atual)
-        barra.addWidget(btn_recarregar)
+        btn_recarregar = QAction("↻", self)
+        btn_recarregar.setToolTip("Recarregar (F5)")
+        btn_recarregar.triggered.connect(self.recarregar_aba_atual)
+        barra.addAction(btn_recarregar)
         
-        btn_home = QPushButton("🏠")
+        btn_home = QAction("🏠", self)
         btn_home.setToolTip("Página Inicial")
-        btn_home.clicked.connect(self.ir_para_home_aba_atual)
-        barra.addWidget(btn_home)
+        btn_home.triggered.connect(self.ir_para_home_aba_atual)
+        barra.addAction(btn_home)
         
         # Barra de endereço
         self.barra_endereco = QLineEdit()
@@ -272,46 +245,44 @@ class NavegadorAbas(QMainWindow):
         barra.addWidget(self.barra_endereco)
         
         # Botões de ação
-        btn_nova_aba = QPushButton("+")
-        btn_nova_aba.setToolTip("Nova Aba")
-        btn_nova_aba.clicked.connect(self.adicionar_nova_aba)
-        barra.addWidget(btn_nova_aba)
+        btn_nova_aba = QAction("+", self)
+        btn_nova_aba.setToolTip("Nova Aba (Ctrl+T)")
+        btn_nova_aba.triggered.connect(self.adicionar_nova_aba)
+        barra.addAction(btn_nova_aba)
         
-        btn_favorito = QPushButton("★")
-        btn_favorito.setToolTip("Adicionar favorito")
-        btn_favorito.clicked.connect(self.adicionar_favorito_aba_atual)
-        barra.addWidget(btn_favorito)
+        btn_favorito = QAction("★", self)
+        btn_favorito.setToolTip("Adicionar favorito (Ctrl+D)")
+        btn_favorito.triggered.connect(self.adicionar_favorito_aba_atual)
+        barra.addAction(btn_favorito)
         
-        btn_github = QPushButton("🐙 GitHub")
-        btn_github.setToolTip("Abrir GitHub")
-        btn_github.clicked.connect(self.abrir_github)
-        barra.addWidget(btn_github)
+        btn_github = QAction("🐙 GitHub", self)
+        btn_github.setToolTip("Abrir GitHub (Ctrl+G)")
+        btn_github.triggered.connect(self.abrir_github)
+        barra.addAction(btn_github)
         
         # Botão para mostrar/esconder console
-        btn_console = QPushButton("📟 Console")
-        btn_console.setToolTip("Mostrar/Esconder console de diagnóstico")
+        btn_console = QAction("📟 Console", self)
+        btn_console.setToolTip("Mostrar/Esconder console (Ctrl+`)")
         btn_console.setCheckable(True)
-        btn_console.toggled.connect(self.console_dock.setVisible)
-        barra.addWidget(btn_console)
+        btn_console.triggered.connect(self.console_dock.setVisible)
+        barra.addAction(btn_console)
     
     def abrir_github(self):
         """Abrir GitHub com tratamento especial"""
         self.log_diagnostico(f"Abrindo GitHub: {self.github_url}", "INFO")
         
-        # Tentar com User-Agent alternativo para o GitHub
-        navegador = self.adicionar_nova_aba(QUrl(self.github_url))
-        
-        # Configurar User-Agent específico para o GitHub
+        # Tentar com User-Agent específico para o GitHub
         user_agent_github = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        navegador.page().profile().setHttpUserAgent(user_agent_github)
+        self.profile.setHttpUserAgent(user_agent_github)
         
+        self.adicionar_nova_aba(QUrl(self.github_url))
         self.status_bar.showMessage(f"Abrindo GitHub: {self.github_url}", 3000)
     
     def setup_profile(self):
         """Configurar perfil com melhorias para compatibilidade"""
         self.profile = QWebEngineProfile.defaultProfile()
         
-        # Cache em disco para melhor performance
+        # Cache em disco
         cache_path = os.path.join(tempfile.gettempdir(), "wazzima_navegador_cache")
         os.makedirs(cache_path, exist_ok=True)
         self.profile.setCachePath(cache_path)
@@ -330,12 +301,8 @@ class NavegadorAbas(QMainWindow):
         settings.setAttribute(QWebEngineSettings.WebGLEnabled, True)
         settings.setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled, True)
         settings.setAttribute(QWebEngineSettings.ErrorPageEnabled, True)
-        settings.setAttribute(QWebEngineSettings.HyperlinkAuditingEnabled, False)
         
-        # Timeout maior para carregamento de chunks
-        settings.setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture, False)
-        
-        # Configurar User-Agent
+        # User-Agent padrão
         self.profile.setHttpUserAgent(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -345,7 +312,6 @@ class NavegadorAbas(QMainWindow):
     
     def criar_atalhos(self):
         """Criar atalhos de teclado"""
-        # Atalhos existentes...
         atalho_nova_aba = QShortcut(QKeySequence("Ctrl+T"), self)
         atalho_nova_aba.activated.connect(self.adicionar_nova_aba)
         
@@ -371,12 +337,27 @@ class NavegadorAbas(QMainWindow):
             self.status_bar.showMessage("Recarregado (sem cache)", 2000)
     
     def criar_menu(self):
-        """Criar menu com opções de diagnóstico"""
+        """Criar menu da aplicação"""
         menubar = self.menuBar()
         
         # Menu Arquivo
         menu_arquivo = menubar.addMenu("Arquivo")
-        # ... (itens do menu existentes)
+        
+        nova_aba = QAction("Nova Aba", self)
+        nova_aba.setShortcut("Ctrl+T")
+        nova_aba.triggered.connect(self.adicionar_nova_aba)
+        menu_arquivo.addAction(nova_aba)
+        
+        fechar_aba = QAction("Fechar Aba", self)
+        fechar_aba.setShortcut("Ctrl+W")
+        fechar_aba.triggered.connect(self.fechar_aba_atual)
+        menu_arquivo.addAction(fechar_aba)
+        
+        menu_arquivo.addSeparator()
+        
+        sair = QAction("Sair", self)
+        sair.triggered.connect(self.close)
+        menu_arquivo.addAction(sair)
         
         # Menu Diagnóstico
         menu_diagnostico = menubar.addMenu("Diagnóstico")
@@ -396,22 +377,6 @@ class NavegadorAbas(QMainWindow):
         limpar_cache.triggered.connect(self.limpar_dados)
         menu_diagnostico.addAction(limpar_cache)
         
-        menu_diagnostico.addSeparator()
-        
-        user_agent_chrome = QAction("User-Agent: Chrome (padrão)", self)
-        user_agent_chrome.triggered.connect(lambda: self.mudar_user_agent("chrome"))
-        menu_diagnostico.addAction(user_agent_chrome)
-        
-        user_agent_firefox = QAction("User-Agent: Firefox", self)
-        user_agent_firefox.triggered.connect(lambda: self.mudar_user_agent("firefox"))
-        menu_diagnostico.addAction(user_agent_firefox)
-        
-        user_agent_edge = QAction("User-Agent: Edge", self)
-        user_agent_edge.triggered.connect(lambda: self.mudar_user_agent("edge"))
-        menu_diagnostico.addAction(user_agent_edge)
-        
-        # ... (restante do menu)
-        
         # Menu Ajuda
         menu_ajuda = menubar.addMenu("Ajuda")
         
@@ -419,34 +384,16 @@ class NavegadorAbas(QMainWindow):
         sobre.triggered.connect(self.mostrar_sobre)
         menu_ajuda.addAction(sobre)
     
-    def mudar_user_agent(self, tipo):
-        """Mudar User-Agent para teste de compatibilidade"""
-        agents = {
-            "chrome": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "firefox": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
-            "edge": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
-        }
-        
-        user_agent = agents.get(tipo, agents["chrome"])
-        self.profile.setHttpUserAgent(user_agent)
-        self.log_diagnostico(f"User-Agent alterado para: {tipo}", "INFO")
-        
-        # Recarregar aba atual
-        self.recarregar_forcado_aba_atual()
-    
     def obter_aba_atual(self):
         """Retorna o navegador da aba atual"""
         if self.aba_widget.count() > 0:
             return self.aba_widget.currentWidget()
         return None
     
-    def adicionar_nova_aba(self, url=None, pagina_personalizada=None):
-        """Adicionar nova aba com página personalizada"""
-        if pagina_personalizada:
-            nova_pagina = pagina_personalizada
-        else:
-            nova_pagina = CustomWebEnginePage(self)
-            nova_pagina.parent_window = self
+    def adicionar_nova_aba(self, url=None):
+        """Adicionar nova aba"""
+        nova_pagina = CustomWebEnginePage(self)
+        nova_pagina.parent_window = self
         
         novo_navegador = QWebEngineView()
         novo_navegador.setPage(nova_pagina)
@@ -589,9 +536,8 @@ class NavegadorAbas(QMainWindow):
                                     QMessageBox.Yes | QMessageBox.No)
         
         if reply == QMessageBox.Yes:
-            profile = QWebEngineProfile.defaultProfile()
-            profile.cookieStore().deleteAllCookies()
-            profile.clearHttpCache()
+            self.profile.cookieStore().deleteAllCookies()
+            self.profile.clearHttpCache()
             self.log_diagnostico("Cache e cookies limpos", "SUCESSO")
             QMessageBox.information(self, "Dados Limpos", "Cache e cookies foram limpos!")
     
@@ -600,9 +546,8 @@ class NavegadorAbas(QMainWindow):
         QMessageBox.about(self, "Sobre o Navegador",
                          "Navegador Python com PyQt5\n"
                          "Versão 2.5 - Modo Diagnóstico\n\n"
-                         "Funcionalidades de Diagnóstico:\n"
+                         "Funcionalidades:\n"
                          "• Console JS integrado\n"
-                         "• Troca de User-Agent\n"
                          "• Recarregamento forçado\n"
                          "• Log de erros detalhado\n"
                          f"• GitHub: {self.github_url}")
@@ -619,7 +564,6 @@ if __name__ == "__main__":
     print("📝 Para usar:")
     print("   • Clique em 'Console' para ver erros em tempo real")
     print("   • Use Ctrl+Shift+R para recarregar sem cache")
-    print("   • Menu 'Diagnóstico' > 'User-Agent' para trocar navegador")
     print("   • Ctrl+` para abrir/fechar console")
     print("=" * 70)
     

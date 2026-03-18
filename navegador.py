@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtWebEngineCore import *
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
+import webbrowser
 
 class AuthDialog(QDialog):
     """Diálogo personalizado para autenticação"""
@@ -331,6 +332,9 @@ class NavegadorAbas(QMainWindow):
         # URL da página inicial
         self.url_home = "https://wazzimagiygg.wikidot.com"
         
+        # URL do GitHub
+        self.github_url = "https://github.com/WazzimaGiygg/Navegator-Python-WazzimaGiygg"
+        
         # Lista de favoritos (compartilhada entre todas as abas)
         self.favoritos = [self.url_home]
         
@@ -391,6 +395,12 @@ class NavegadorAbas(QMainWindow):
         btn_abrir_arquivo.clicked.connect(self.abrir_arquivo_html)
         barra_ferramentas.addWidget(btn_abrir_arquivo)
         
+        # Botão do GitHub
+        btn_github = QPushButton("🐙 GitHub")
+        btn_github.setToolTip("Abrir projeto no GitHub")
+        btn_github.clicked.connect(self.abrir_github)
+        barra_ferramentas.addWidget(btn_github)
+        
         # === BARRA DE ABAS ===
         self.aba_widget = QTabWidget()
         self.aba_widget.setTabsClosable(True)
@@ -418,6 +428,11 @@ class NavegadorAbas(QMainWindow):
         
         # Adicionar primeira aba
         self.adicionar_nova_aba(QUrl(self.url_home))
+    
+    def abrir_github(self):
+        """Abrir o projeto GitHub em uma nova aba"""
+        self.adicionar_nova_aba(QUrl(self.github_url))
+        self.status_bar.showMessage(f"Abrindo GitHub: {self.github_url}", 3000)
     
     def setup_profile(self):
         """Configurar perfil do navegador"""
@@ -473,6 +488,10 @@ class NavegadorAbas(QMainWindow):
         # Ctrl+U - Ver código fonte
         atalho_codigo_fonte = QShortcut(QKeySequence("Ctrl+U"), self)
         atalho_codigo_fonte.activated.connect(self.exibir_codigo_fonte_aba_atual)
+        
+        # Ctrl+G - Abrir GitHub
+        atalho_github = QShortcut(QKeySequence("Ctrl+G"), self)
+        atalho_github.activated.connect(self.abrir_github)
     
     def criar_menu(self):
         """Criar menu da aplicação"""
@@ -523,6 +542,14 @@ class NavegadorAbas(QMainWindow):
         codigo_fonte.setShortcut("Ctrl+U")
         codigo_fonte.triggered.connect(self.exibir_codigo_fonte_aba_atual)
         menu_exibir.addAction(codigo_fonte)
+        
+        # Menu Projeto
+        menu_projeto = menubar.addMenu("Projeto")
+        
+        github_action = QAction("GitHub Project", self)
+        github_action.setShortcut("Ctrl+G")
+        github_action.triggered.connect(self.abrir_github)
+        menu_projeto.addAction(github_action)
         
         # Menu Favoritos
         menu_favoritos = menubar.addMenu("Favoritos")
@@ -839,7 +866,8 @@ class NavegadorAbas(QMainWindow):
                          "• Código fonte com syntax highlighting\n"
                          "• Copiar código fonte\n"
                          "• Suporte a autenticação (auth-popup)\n"
-                         f"• Página inicial: {self.url_home}\n\n"
+                         f"• Página inicial: {self.url_home}\n"
+                         f"• GitHub: {self.github_url}\n\n"
                          "Desenvolvido com PyQt5 e QtWebEngine")
 
 # Criar um arquivo HTML de exemplo
@@ -950,7 +978,8 @@ def criar_arquivo_exemplo():
         
         <div style="text-align: center; margin-top: 30px;">
             <p><strong>Links de teste:</strong></p>
-            <a href="https://wazzimagiygg.com" class="btn">🏠 wazzimagiygg.com</a>
+            <a href="https://wazzimagiygg.wikidot.com" class="btn">🏠 Página Inicial</a>
+            <a href="https://github.com/WazzimaGiygg/Navegator-Python-WazzimaGiygg" class="btn">🐙 GitHub Project</a>
             <a href="https://www.google.com" class="btn">Google</a>
             <a href="https://httpbin.org/basic-auth/user/passwd" class="btn">Testar Auth (user/passwd)</a>
         </div>
@@ -975,12 +1004,14 @@ if __name__ == "__main__":
     print("=" * 70)
     print(f"📄 Página exemplo: {arquivo_exemplo}")
     print(f"🏠 Página inicial: https://wazzimagiygg.wikidot.com")
+    print(f"🐙 GitHub: https://github.com/WazzimaGiygg/Navegator-Python-WazzimaGiygg")
     print("🔐 Suporte a autenticação: ATIVADO")
     print("🔍 Visualização de código fonte: ATIVADO")
     print("\n📝 ATALHOS:")
     print("   Ctrl+T    - Nova aba")
     print("   Ctrl+W    - Fechar aba")
     print("   Ctrl+U    - Ver código fonte")
+    print("   Ctrl+G    - Abrir GitHub Project")
     print("   Ctrl+L    - Focar URL")
     print("   F5        - Recarregar")
     print("   Ctrl+D    - Adicionar favorito")
